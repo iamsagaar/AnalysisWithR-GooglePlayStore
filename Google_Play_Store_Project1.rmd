@@ -1,0 +1,189 @@
+---
+ title: "Google Play Store"
+author: "Team ACE"
+date: "November 19, 2018"
+output: html_document
+---
+
+```{r}
+require("tidyverse")
+require("ggplot2")
+```
+
+****Step1: DATA LOADING****
+
+Before loading the data in R. we have manually removed a row having value of $Price='Everyone'. 
+This is because, the value of other 2 variables 'App' and 'Category' went missing. It is not possible to predict these values.As a result, the entire row is left shifted, which is making data for each column incorrect.
+
+```{r}
+googleplaystore <- read.csv("googleplaystore.csv")
+View(googleplaystore)
+```
+The command above will load the googleplaystore dataset into the 'googleplaystore' dataframe.
+
+****Step2: DATA FILTERING****
+
+***2.1 Identifying NA values***
+```{r}
+colSums(apply(googleplaystore,2,is.na))
+```
+The above step will give a count of NA values for each column. 
+
+**** 2.2 Type filtering ****
+
+```{r}
+summary(googleplaystore$Type)
+```
+
+
+*******2.3 Price variable filtering *******
+
+#identifying and removing '$' symbol
+```{r}
+googleplaystore$Price=gsub("\\$","",googleplaystore$Price)
+```
+#Changing its Type from 'Character' to 'Numeric'
+```{r}
+typeof(googleplaystore$Price) #before changing
+googleplaystore$Price=as.numeric(googleplaystore$Price,na.rm=TRUE)
+typeof(googleplaystore$Price) #after change
+```
+The above command will remove '$' symbol appearing in the value of 'Price'. The type is changed from 'character' to 'double', Now it makes the variable useful for devising descriptive analysis.
+
+```{r}
+head(googleplaystore)
+```
+The above command will display first 6 rows of the frame variable to make sure the data inside $Price is appearing correct or not. 
+
+#Summarising Price
+
+```{r}
+summary(googleplaystore$Price) #summary
+```
+
+
+#Performing Descriptive Analysis on Price
+```{r}
+library(dplyr) #imported library to perform groupby operation
+googleplaystore %>%   
+  group_by(Category)%>% 
+  summarise(Price= mean(Price, na.rm = TRUE))%>%
+  arrange(Price)
+```
+Here, the command is used to to find the mean Price based on the different category.
+
+
+```{r}
+range(googleplaystore$Price,na.rm=TRUE) #range
+sd(googleplaystore$Price,na.rm = TRUE) #standard deviation
+var(googleplaystore$Price,na.rm = TRUE) #variance
+```
+The above commands give a decriptive summary of $Price such as variance, standard deviation and range.
+
+
+**Category and corresponding Rating**
+1. **remove NA from Rating based on the category **
+**Category vs rating**
+```{r}
+mean.rating=mean(googleplaystore$Rating,na.rm = TRUE)
+googleplaystore[is.na(googleplaystore$Rating),]$Rating = mean.rating
+```
+The above command will remove NA's from $Rating by replacing it with mean rating.
+
+```{r}
+#library(dplyr) #imported library to perform groupby operation
+googleplaystore %>%   
+  group_by(Category)%>% 
+  summarise(Rating= mean(Rating))%>%
+  arrange(Rating)
+
+```
+The above command will calculate mean rating based on each Category. 
+
+
+**Category vs Reviews**
+
+```{r}
+googleplaystore %>%   
+  group_by(Category)%>% 
+  summarise(Reviews= mean(Reviews))%>%
+  arrange(Reviews)
+
+```
+
+```{r}
+library(lubridate)
+googleplaystore$Last.Updated <-dmy(googleplaystore$Last.Updated)
+typeof(googleplaystore$Last.Updated)
+```
+The above command will modify LastUpdated to appropriate Date Format.
+
+## CONVERTING INSTALLS
+
+```{r}
+googleplaystore$Installs = gsub("\\+", "", as.character(googleplaystore$Installs))
+googleplaystore$Installs = as.numeric(gsub(",", "", googleplaystore$Installs))
+```
+The above command will remove '+' and ',' from $Installs to convert it into numeric datatype. 
+
+```{r}
+typeof(googleplaystore$Installs)
+```
+
+
+```{r}
+googleplaystore$Size = gsub("M", "", googleplaystore$Size)
+googleplaystore$Size = ifelse(grepl("k", googleplaystore$Size), 0, as.numeric(googleplaystore$Size))
+```
+Here, to remove the variable 'M' which represents Megabyte, we have used the function gsub and also converted into numeric datatype
+
+```{r}
+typeof(googleplaystore$Size)
+```
+The above command will remove 'M' from $Size and will convert it into 'Numeric' datatype.
+
+```{r}
+library(dplyr)
+googleplaystore %>%
+  group_by(Category)%>%
+  summarise(category_by_Reviews = mean(Reviews))
+```
+The above command will provide mean reviews for each Category.
+```{r}
+library(scales)
+ggplot(googleplaystore, aes(x=Reviews, y=Rating)) +
+  scale_x_continuous(trans='log10', labels=comma) +
+  geom_point(aes(col=Type)) +
+  labs(title="Ratings vs Reviews with type") 
+  
+```
+The above plot describes Ratings VS Reviews according to Type Free | Paid
+
+```{r}
+library(scales)
+ggplot(googleplaystore, aes(x=Installs, y=Rating)) +
+  scale_x_continuous(trans='log10', labels=comma) +
+  geom_point(aes(col=Type)) +
+  labs(title="Ratings vs Installs with type") 
+```
+The above plot describes Ratings VS Installs according to Type Free | Paid
+
+**Check relationship of SIZE and Installs
+
+
+
+```{r}
+hist(googleplaystore$Size)
+```
+The above histogram explains variation in $Size. It is rightly skewed.
+
+```{r}
+boxplot(googleplaystore$Size) #check outlyers
+```
+The above boxplot checks outliers in $Size if any.
+
+
+```{r}
+summary(googleplaystore)
+```
+The above command displays a Descriptive Summary of the entire DataSet GooglePlayStore.
